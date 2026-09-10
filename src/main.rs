@@ -28,9 +28,14 @@ impl Lexer {
     fn current(&self) -> Option<char> {
         self.source.get(self.position).copied()
     }
+    fn advance(&mut self) {
+        self.position += 1;
+    }
 }
 
 fn main() {
-    let lexer = Lexer::new("mov rax, 1");
+    let mut lexer = Lexer::new("mov rax, 1");
+    println!("{}", lexer.current().unwrap());
+    lexer.advance();
     println!("{}", lexer.current().unwrap());
 }
