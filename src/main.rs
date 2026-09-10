@@ -1,3 +1,7 @@
+enum Token {
+    Register(Register),
+}
+
 enum Register {
     RAX,
     RBX,
@@ -8,6 +12,21 @@ enum Register {
     RBP,
     RSP,
 }
+
+struct Lexer {
+    source: Vec<char>,
+    position: usize,
+}
+
+impl Lexer {
+    fn new() -> Self {
+        Self {
+            source: Vec::new(),
+            position: 0,
+        }
+    }
+}
+
 fn main() {
-    println!("Hello, world!");
+    let lexer = Lexer::new();
 }
