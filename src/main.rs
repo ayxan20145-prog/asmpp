@@ -19,14 +19,18 @@ struct Lexer {
 }
 
 impl Lexer {
-    fn new() -> Self {
+    fn new(source: &str) -> Self {
         Self {
-            source: Vec::new(),
+            source: source.chars().collect(),
             position: 0,
         }
+    }
+    fn current(&self) -> Option<char> {
+        self.source.get(self.position).copied()
     }
 }
 
 fn main() {
-    let lexer = Lexer::new();
+    let lexer = Lexer::new("mov rax, 1");
+    println!("{}", lexer.current().unwrap());
 }
