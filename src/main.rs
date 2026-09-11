@@ -1,3 +1,16 @@
+use clap::Parser as ClapParser;
+use std::fs;
+
+#[derive(ClapParser, Debug)]
+#[command(
+    name = "asmpp",
+    version,
+    about = "a higher level assembly language that compiles to assembly"
+)]
+struct Cli {
+    input: String,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 enum Token {
     Register(Register),
@@ -140,6 +153,11 @@ impl Parser {
         self.advance();
         let reg2 = self.advance();
 
+        match self.current() {
+            Token::Semicolon => self.advance(),
+            _ => panic!("expected ';'"),
+        };
+
         match (reg1, reg2) {
             (Token::Register(reg1), Token::Register(reg2)) => Statement::Mov(reg1, reg2),
             _ => panic!("expected registers"),
@@ -157,7 +175,11 @@ impl Parser {
 }
 
 fn main() {
-    let mut lexer = Lexer::new("rax = rbx");
+    let args = Cli::parse();
+
+    let content = fs::read_to_string(&args.input).expect("Failed to read program");
+
+    let mut lexer = Lexer::new(&content);
 
     let tokens = lexer.tokenize();
 
