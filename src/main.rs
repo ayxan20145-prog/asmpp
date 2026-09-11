@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Token {
     Register(Register),
     Mov,
@@ -9,7 +9,7 @@ enum Token {
     Eof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Register {
     RAX,
     RBX,
@@ -102,10 +102,28 @@ impl Lexer {
             Some(c) => panic!("unexpected char: {}", c),
         }
     }
+    fn tokenize(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        loop {
+            let token = self.next_token();
+
+            if token == Token::Eof {
+                tokens.push(Token::Eof);
+                break;
+            }
+
+            tokens.push(token);
+        }
+
+        tokens
+    }
 }
 
 fn main() {
     let mut lexer = Lexer::new("rax = rbx");
-    let token = lexer.next_token();
-    println!("{:?}", token);
+
+    let tokens = lexer.tokenize();
+
+    println!("{:?}", tokens);
 }
