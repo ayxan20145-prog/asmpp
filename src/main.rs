@@ -35,6 +35,11 @@ struct Parser {
     position: usize,
 }
 
+#[derive(Debug)]
+struct Program {
+    statements: Vec<Statement>,
+}
+
 impl Lexer {
     fn new(source: &str) -> Self {
         Self {
@@ -140,6 +145,15 @@ impl Parser {
             _ => panic!("expected registers"),
         }
     }
+    fn parse_program(&mut self) -> Program {
+        let mut statements = Vec::new();
+
+        while self.current() != Token::Eof {
+            statements.push(self.parse_statement());
+        }
+
+        Program { statements }
+    }
 }
 
 fn main() {
@@ -149,9 +163,9 @@ fn main() {
 
     let mut parser = Parser::new(tokens);
 
-    let statement = parser.parse_statement();
+    let program = parser.parse_program();
 
-    println!("{:?}", statement);
+    println!("{:#?}", program);
 }
 fn parse_register(name: &str) -> Register {
     match name {
