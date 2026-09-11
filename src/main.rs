@@ -187,7 +187,9 @@ fn main() {
 
     let program = parser.parse_program();
 
-    println!("{:#?}", program);
+    let assembly = compile(&program);
+
+    fs::write("program.asm", assembly).expect("Failed to write program");
 }
 fn parse_register(name: &str) -> Register {
     match name {
@@ -201,4 +203,37 @@ fn parse_register(name: &str) -> Register {
         "rsp" => Register::RSP,
         _ => panic!("unknown register"),
     }
+}
+fn register_name(register: &Register) -> &'static str {
+    match register {
+        Register::RAX => "rax",
+        Register::RBX => "rbx",
+        Register::RCX => "rcx",
+        Register::RDX => "rdx",
+        Register::RSI => "rsi",
+        Register::RDI => "rdi",
+        Register::RBP => "rbp",
+        Register::RSP => "rsp",
+    }
+}
+fn compile(program: &Program) -> String {
+    let mut assembly = String::new();
+
+    assembly.push_str("section .text\n");
+    assembly.push_str("global _start\n\n");
+    assembly.push_str("_start:\n");
+
+    for statement in &program.statements {
+        match statement {
+            Statement::Mov(reg1, reg2) => {
+                assembly.push_str(&format!(
+                    "    mov {}, {}\n",
+                    register_name(reg1),
+                    register_name(reg2)
+                ));
+            }
+        }
+    }
+
+    assembly
 }
