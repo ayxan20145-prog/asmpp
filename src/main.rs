@@ -14,11 +14,17 @@ struct Cli {
 #[derive(Debug, PartialEq, Clone)]
 enum Token {
     Register(Register),
+    Name(String),
     Value(i64),
 
     Equals,
 
     Syscall,
+
+    Fn,
+
+    LBrace,
+    RBrace,
 
     Semicolon,
     Eof,
@@ -40,6 +46,7 @@ enum Register {
 enum Statement {
     Mov(Register, Value),
     Syscall,
+    Function(String, Vec<Statement>),
 }
 
 #[derive(Debug)]
@@ -103,6 +110,16 @@ impl Lexer {
                 Token::Equals
             }
 
+            Some('{') => {
+                self.advance();
+                Token::LBrace
+            }
+
+            Some('}') => {
+                self.advance();
+                Token::RBrace
+            }
+
             Some(c) if c.is_ascii_digit() => {
                 let mut value = String::new();
 
@@ -141,8 +158,20 @@ impl Lexer {
 
                 if name == "syscall" {
                     Token::Syscall
+                } else if name == "fn" {
+                    Token::Fn
                 } else {
-                    Token::Register(parse_register(name.as_str()))
+                    match name.as_str() {
+                        "rax" => Token::Register(Register::RAX),
+                        "rbx" => Token::Register(Register::RBX),
+                        "rcx" => Token::Register(Register::RCX),
+                        "rdx" => Token::Register(Register::RDX),
+                        "rsi" => Token::Register(Register::RSI),
+                        "rdi" => Token::Register(Register::RDI),
+                        "rbp" => Token::Register(Register::RBP),
+                        "rsp" => Token::Register(Register::RSP),
+                        _ => Token::Name(name),
+                    }
                 }
             }
             Some(c) => panic!("unexpected char: {}", c),
@@ -194,6 +223,33 @@ impl Parser {
                 }
 
                 Statement::Syscall
+            }
+            Token::Fn => {
+                self.advance();
+
+                let name = match self.advance() {
+                    Token::Name(name) => name,
+                    _ => panic!("expected function name"),
+                };
+
+                match self.advance() {
+                    Token::LBrace => {}
+                    _ => panic!("expected '{{'"),
+                }
+
+                let mut statements = Vec::new();
+
+                while self.current() != Token::RBrace {
+                    if self.current() == Token::Eof {
+                        panic!("unclosed function");
+                    }
+
+                    statements.push(self.parse_statement());
+                }
+
+                self.advance();
+
+                Statement::Function(name, statements)
             }
             _ => {
                 let reg = match self.advance() {
@@ -249,19 +305,6 @@ fn main() {
 
     fs::write("program.asm", assembly).expect("Failed to write program");
 }
-fn parse_register(name: &str) -> Register {
-    match name {
-        "rax" => Register::RAX,
-        "rbx" => Register::RBX,
-        "rcx" => Register::RCX,
-        "rdx" => Register::RDX,
-        "rsi" => Register::RSI,
-        "rdi" => Register::RDI,
-        "rbp" => Register::RBP,
-        "rsp" => Register::RSP,
-        _ => panic!("unknown register"),
-    }
-}
 fn register_name(register: &Register) -> &'static str {
     match register {
         Register::RAX => "rax",
@@ -293,6 +336,29 @@ fn compile(program: &Program) -> String {
             }
             Statement::Syscall => {
                 assembly.push_str("    syscall\n");
+            }
+            Statement::Function(name, statements) => {
+                assembly.push_str(&format!("{}:\n", name));
+
+                for statement in statements {
+                    match statement {
+                        Statement::Mov(reg, value) => {
+                            assembly.push_str(&format!("    mov {}, ", register_name(reg)));
+
+                            match value {
+                                Value::Register(reg) => assembly.push_str(register_name(reg)),
+                                Value::Number(num) => assembly.push_str(&num.to_string()),
+                            }
+
+                            assembly.push_str("\n");
+                        }
+                        Statement::Syscall => {
+                            assembly.push_str("    syscall\n");
+                        }
+                        _ => panic!("error message"),
+                    }
+                }
+                assembly.push('\n');
             }
         }
     }
