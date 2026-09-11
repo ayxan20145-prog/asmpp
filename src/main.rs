@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Token {
     Register(Register),
     Mov,
@@ -9,7 +9,7 @@ enum Token {
     Eof,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Register {
     RAX,
     RBX,
@@ -132,6 +132,9 @@ impl Parser {
             position: 0,
         }
     }
+    fn current(&self) -> Token {
+        self.tokens[self.position].clone()
+    }
 }
 
 fn main() {
@@ -140,4 +143,6 @@ fn main() {
     let tokens = lexer.tokenize();
 
     let parser = Parser::new(tokens);
+
+    println!("{:?}", parser.current());
 }
