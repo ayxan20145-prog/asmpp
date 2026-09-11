@@ -18,6 +18,8 @@ enum Token {
 
     Equals,
 
+    Syscall,
+
     Semicolon,
     Eof,
 }
@@ -37,6 +39,7 @@ enum Register {
 #[derive(Debug)]
 enum Statement {
     Mov(Register, Value),
+    Syscall,
 }
 
 #[derive(Debug)]
@@ -136,7 +139,11 @@ impl Lexer {
                     }
                 }
 
-                Token::Register(parse_register(name.as_str()))
+                if name == "syscall" {
+                    Token::Syscall
+                } else {
+                    Token::Register(parse_register(name.as_str()))
+                }
             }
             Some(c) => panic!("unexpected char: {}", c),
         }
@@ -175,25 +182,41 @@ impl Parser {
         token
     }
     fn parse_statement(&mut self) -> Statement {
-        let reg = match self.advance() {
-            Token::Register(reg) => reg,
-            _ => panic!("expected register"),
-        };
-
-        self.advance();
-
-        let value = match self.advance() {
-            Token::Register(reg) => Value::Register(reg),
-            Token::Value(val) => Value::Number(val),
-            _ => panic!("expected value"),
-        };
-
         match self.current() {
-            Token::Semicolon => self.advance(),
-            _ => panic!("expected ';'"),
-        };
+            Token::Syscall => {
+                self.advance();
 
-        Statement::Mov(reg, value)
+                match self.current() {
+                    Token::Semicolon => {
+                        self.advance();
+                    }
+                    _ => panic!("expected ';'"),
+                }
+
+                Statement::Syscall
+            }
+            _ => {
+                let reg = match self.advance() {
+                    Token::Register(reg) => reg,
+                    _ => panic!("expected register"),
+                };
+
+                self.advance();
+
+                let value = match self.advance() {
+                    Token::Register(reg) => Value::Register(reg),
+                    Token::Value(val) => Value::Number(val),
+                    _ => panic!("expected value"),
+                };
+
+                match self.current() {
+                    Token::Semicolon => self.advance(),
+                    _ => panic!("expected ';'"),
+                };
+
+                Statement::Mov(reg, value)
+            }
+        }
     }
     fn parse_program(&mut self) -> Program {
         let mut statements = Vec::new();
@@ -265,9 +288,10 @@ fn compile(program: &Program) -> String {
 
                 assembly.push_str("\n");
             }
+            Statement::Syscall => {
+                assembly.push_str("    syscall\n");
+            }
         }
     }
-
-    assembly.push_str("\n    mov rax, 60\n    mov rdi, 0\n    syscall");
     assembly
 }
