@@ -219,9 +219,7 @@ fn register_name(register: &Register) -> &'static str {
 fn compile(program: &Program) -> String {
     let mut assembly = String::new();
 
-    assembly.push_str("section .text\n");
-    assembly.push_str("global _start\n\n");
-    assembly.push_str("_start:\n");
+    assembly.push_str("section .text\nglobal _start\n\n_start:\n");
 
     for statement in &program.statements {
         match statement {
@@ -235,5 +233,6 @@ fn compile(program: &Program) -> String {
         }
     }
 
+    assembly.push_str("\n    mov rax, 60\n    mov rdi, 0\n    syscall");
     assembly
 }
