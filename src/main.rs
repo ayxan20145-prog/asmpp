@@ -22,6 +22,7 @@ enum Token {
     Syscall,
 
     Fn,
+    Call,
 
     LBrace,
     RBrace,
@@ -47,6 +48,7 @@ enum Statement {
     Mov(Register, Value),
     Syscall,
     Function(String, Vec<Statement>),
+    Call(String),
 }
 
 #[derive(Debug)]
@@ -160,6 +162,8 @@ impl Lexer {
                     Token::Syscall
                 } else if name == "fn" {
                     Token::Fn
+                } else if name == "call" {
+                    Token::Call
                 } else {
                     match name.as_str() {
                         "rax" => Token::Register(Register::RAX),
@@ -250,6 +254,21 @@ impl Parser {
                 self.advance();
 
                 Statement::Function(name, statements)
+            }
+            Token::Call => {
+                self.advance();
+
+                let name = match self.advance() {
+                    Token::Name(name) => name,
+                    _ => panic!("expected function name"),
+                };
+
+                match self.advance() {
+                    Token::Semicolon => {}
+                    _ => panic!("expected ';'"),
+                }
+
+                Statement::Call(name)
             }
             _ => {
                 let reg = match self.advance() {
@@ -355,10 +374,16 @@ fn compile(program: &Program) -> String {
                         Statement::Syscall => {
                             assembly.push_str("    syscall\n");
                         }
+                        Statement::Call(name) => {
+                            assembly.push_str(&format!("    call {}\n", name));
+                        }
                         _ => panic!("error message"),
                     }
                 }
-                assembly.push('\n');
+                assembly.push_str("\n    ret\n");
+            }
+            Statement::Call(name) => {
+                assembly.push_str(&format!("    call {}\n", name));
             }
         }
     }
