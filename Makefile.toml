@@ -1,0 +1,15 @@
+[tasks.default]
+alias = "install"
+
+[tasks.install]
+description = "install asmpp"
+script = [
+    "cargo build --release",
+    "sudo install -Dm755 target/release/asmpp /usr/local/bin"
+]
+
+[tasks.uninstall]
+description = "uninstall asmpp"
+script = [
+    "sudo rm -f /usr/local/bin/asmpp"
+]
