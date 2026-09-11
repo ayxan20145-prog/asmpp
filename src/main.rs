@@ -201,7 +201,10 @@ impl Parser {
                     _ => panic!("expected register"),
                 };
 
-                self.advance();
+                match self.advance() {
+                    Token::Equals => {}
+                    _ => panic!("expected '='"),
+                }
 
                 let value = match self.advance() {
                     Token::Register(reg) => Value::Register(reg),
