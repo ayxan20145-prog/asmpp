@@ -14,6 +14,7 @@ struct Cli {
 #[derive(Debug, PartialEq, Clone)]
 enum Token {
     Register(Register),
+    Value(i64),
 
     Equals,
 
@@ -35,7 +36,13 @@ enum Register {
 
 #[derive(Debug)]
 enum Statement {
-    Mov(Register, Register),
+    Mov(Register, Value),
+}
+
+#[derive(Debug)]
+enum Value {
+    Register(Register),
+    Number(i64),
 }
 
 struct Lexer {
@@ -93,6 +100,25 @@ impl Lexer {
                 Token::Equals
             }
 
+            Some(c) if c.is_ascii_digit() => {
+                let mut value = String::new();
+
+                loop {
+                    match self.current() {
+                        Some(c) => {
+                            if c.is_ascii_digit() {
+                                value.push(c);
+                                self.advance();
+                            } else {
+                                break;
+                            }
+                        }
+                        None => break,
+                    }
+                }
+
+                Token::Value(value.parse().unwrap())
+            }
             Some(c) if c.is_alphabetic() => {
                 let mut name = String::new();
 
@@ -149,19 +175,25 @@ impl Parser {
         token
     }
     fn parse_statement(&mut self) -> Statement {
-        let reg1 = self.advance();
+        let reg = match self.advance() {
+            Token::Register(reg) => reg,
+            _ => panic!("expected register"),
+        };
+
         self.advance();
-        let reg2 = self.advance();
+
+        let value = match self.advance() {
+            Token::Register(reg) => Value::Register(reg),
+            Token::Value(val) => Value::Number(val),
+            _ => panic!("expected value"),
+        };
 
         match self.current() {
             Token::Semicolon => self.advance(),
             _ => panic!("expected ';'"),
         };
 
-        match (reg1, reg2) {
-            (Token::Register(reg1), Token::Register(reg2)) => Statement::Mov(reg1, reg2),
-            _ => panic!("expected registers"),
-        }
+        Statement::Mov(reg, value)
     }
     fn parse_program(&mut self) -> Program {
         let mut statements = Vec::new();
@@ -223,12 +255,15 @@ fn compile(program: &Program) -> String {
 
     for statement in &program.statements {
         match statement {
-            Statement::Mov(reg1, reg2) => {
-                assembly.push_str(&format!(
-                    "    mov {}, {}\n",
-                    register_name(reg1),
-                    register_name(reg2)
-                ));
+            Statement::Mov(reg, value) => {
+                assembly.push_str(&format!("    mov {}, ", register_name(reg)));
+
+                match value {
+                    Value::Register(reg) => assembly.push_str(register_name(reg)),
+                    Value::Number(num) => assembly.push_str(&num.to_string()),
+                }
+
+                assembly.push_str("\n");
             }
         }
     }
