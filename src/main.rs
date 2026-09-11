@@ -1,7 +1,6 @@
 #[derive(Debug, PartialEq, Clone)]
 enum Token {
     Register(Register),
-    Mov,
 
     Equals,
 
@@ -19,6 +18,11 @@ enum Register {
     RDI,
     RBP,
     RSP,
+}
+
+#[derive(Debug)]
+enum Statement {
+    Mov(Register, Register),
 }
 
 struct Lexer {
@@ -88,21 +92,7 @@ impl Lexer {
                     }
                 }
 
-                if name == "mov" {
-                    Token::Mov
-                } else {
-                    Token::Register(match name.as_str() {
-                        "rax" => Register::RAX,
-                        "rbx" => Register::RBX,
-                        "rcx" => Register::RCX,
-                        "rdx" => Register::RDX,
-                        "rsi" => Register::RSI,
-                        "rdi" => Register::RDI,
-                        "rbp" => Register::RBP,
-                        "rsp" => Register::RSP,
-                        _ => panic!("error message"),
-                    })
-                }
+                Token::Register(parse_register(name.as_str()))
             }
             Some(c) => panic!("unexpected char: {}", c),
         }
@@ -135,8 +125,20 @@ impl Parser {
     fn current(&self) -> Token {
         self.tokens[self.position].clone()
     }
-    fn advance(&mut self) {
+    fn advance(&mut self) -> Token {
+        let token = self.current();
         self.position += 1;
+        token
+    }
+    fn parse_statement(&mut self) -> Statement {
+        let reg1 = self.advance();
+        self.advance();
+        let reg2 = self.advance();
+
+        match (reg1, reg2) {
+            (Token::Register(reg1), Token::Register(reg2)) => Statement::Mov(reg1, reg2),
+            _ => panic!("expected registers"),
+        }
     }
 }
 
@@ -147,7 +149,20 @@ fn main() {
 
     let mut parser = Parser::new(tokens);
 
-    parser.advance();
+    let statement = parser.parse_statement();
 
-    println!("{:?}", parser.current());
+    println!("{:?}", statement);
+}
+fn parse_register(name: &str) -> Register {
+    match name {
+        "rax" => Register::RAX,
+        "rbx" => Register::RBX,
+        "rcx" => Register::RCX,
+        "rdx" => Register::RDX,
+        "rsi" => Register::RSI,
+        "rdi" => Register::RDI,
+        "rbp" => Register::RBP,
+        "rsp" => Register::RSP,
+        _ => panic!("unknown register"),
+    }
 }
